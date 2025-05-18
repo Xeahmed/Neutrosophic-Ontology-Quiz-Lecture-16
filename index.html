@@ -1,0 +1,657 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 16: Neutrosophic Ontology Quiz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(to bottom, #f0f0f0, #ffffff);
+            color: #333;
+            transition: all 0.3s ease;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(to bottom, #333, #000);
+            color: #ddd;
+        }
+
+        header, footer {
+            background: #007BFF;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+        }
+
+        header p, footer p {
+            font-size: 1rem;
+        }
+
+        #dark-mode-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            background: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        #dark-mode-toggle:hover {
+            background: #0056b3;
+        }
+
+        #quiz-container {
+            flex: 1;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        #progress {
+            height: 100%;
+            background: #28a745;
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        #question-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            animation: fadeIn 0.5s ease;
+        }
+
+        body.dark-mode #question-container {
+            background: #444;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #question-text {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .option {
+            display: block;
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        body.dark-mode .option {
+            background: #555;
+        }
+
+        .option:hover {
+            background: #e9ecef;
+        }
+
+        body.dark-mode .option:hover {
+            background: #666;
+        }
+
+        input[type="radio"] {
+            margin-right: 0.5rem;
+        }
+
+        #submit-btn, #next-btn {
+            padding: 0.8rem 1.5rem;
+            margin: 1rem 0.5rem 0 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        #submit-btn {
+            background: #007BFF;
+            color: white;
+        }
+
+        #submit-btn:hover {
+            animation: bounce 0.3s;
+            background: #0056b3;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        #next-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        #next-btn:hover {
+            background: #218838;
+        }
+
+        #feedback {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 5px;
+            direction: rtl;
+            font-size: 1rem;
+            display: none;
+        }
+
+        #feedback.correct {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        #feedback.wrong {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        #score-container {
+            display: none;
+            text-align: center;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode #score-container {
+            background: #444;
+        }
+
+        #score-container p {
+            font-size: 1.2rem;
+            margin: 0.5rem 0;
+            direction: rtl;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            #quiz-container {
+                padding: 1rem;
+            }
+
+            #question-text {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.2rem;
+            }
+
+            header p, footer p {
+                font-size: 0.9rem;
+            }
+
+            #dark-mode-toggle {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            #question-container {
+                padding: 1rem;
+            }
+
+            #question-text {
+                font-size: 0.9rem;
+            }
+
+            .option {
+                padding: 0.6rem;
+                font-size: 0.9rem;
+            }
+
+            #submit-btn, #next-btn {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button id="dark-mode-toggle">Toggle Dark Mode</button>
+    <header>
+        <h1>Lecture 16: Neutrosophic Ontology Quiz</h1>
+        <p>This quiz page was created by Eng: XE Ahmed Refat – EELU Student Sohag branch</p>
+    </header>
+    <div id="quiz-container">
+        <div id="progress-bar"><div id="progress"></div></div>
+        <div id="question-container">
+            <p id="question-text"></p>
+            <div id="options"></div>
+            <button id="submit-btn">Submit</button>
+            <button id="next-btn" style="display: none;">Next</button>
+            <div id="feedback"></div>
+        </div>
+        <div id="score-container">
+            <h2>Final Score</h2>
+            <p id="score-text"></p>
+            <p id="percentage-text"></p>
+            <p id="performance-text"></p>
+        </div>
+    </div>
+    <footer>
+        <p>© Eng: XE Ahmed Refat – EELU Sohag</p>
+    </footer>
+    <script>
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        const questions = [
+            // MCQs
+            {
+                question: "What is the primary difference between Neutrosophic Ontology and Fuzzy Ontology?",
+                options: ["Neutrosophic Ontology uses binary logic", "Neutrosophic Ontology includes indeterminacy (I)", "Fuzzy Ontology includes falsity (F)", "Neutrosophic Ontology excludes truth (T)"],
+                correct: "B",
+                difficulty: "Easy",
+                explanation: "الأونتولوجي النيوتروسوفيك بتمد الأونتولوجي الضبابية بإضافة مكون اللايقين (Indeterminacy, I)، بالإضافة للحقيقة (T) والزيف (F)، عشان تتعامل مع عدم اليقين والتناقضات."
+            },
+            {
+                question: "Who introduced Neutrosophic Logic in 1995?",
+                options: ["Alan Turing", "Florentin Smarandache", "John McCarthy", "Lotfi Zadeh"],
+                correct: "B",
+                difficulty: "Easy",
+                explanation: "فلورنتين سمارانداش (Florentin Smarandache) هو اللي قدم المنطق النيوتروسوفيك في 1995، زي ما ذُكر في المحاضرة."
+            },
+            {
+                question: "In the penguin example, what is the indeterminacy (I) value for 'Is a penguin a bird?'",
+                options: ["0.1", "0.3", "0.9", "0.0"],
+                correct: "B",
+                difficulty: "Medium",
+                explanation: "في مثال البطريق، قيمة اللايقين (I) لسؤال 'هل البطريق طائر؟' هي 0.3، بسبب عدم اليقين بخصوص قدرة الطيران، زي ما ذُكر في المحاضرة."
+            },
+            {
+                question: "What are the three components used in Neutrosophic Ontology?",
+                options: ["Truth, Falsehood, Uncertainty", "Truth, Falsity, Indeterminacy", "Membership, Non-membership, Ambiguity", "Positive, Negative, Neutral"],
+                correct: "B",
+                difficulty: "Easy",
+                explanation: "الأونتولوجي النيوتروسوفيك بتستخدم تلات مكونات: الحقيقة (Truth, T)، الزيف (Falsity, F)، واللايقين (Indeterminacy, I)، زي ما واضح في المحاضرة."
+            },
+            {
+                question: "In the university example, what is the truth (T) value for Alex's enrollment in the Advanced AI course?",
+                options: ["0.6", "0.8", "0.95", "0.1"],
+                correct: "B",
+                difficulty: "Medium",
+                explanation: "في مثال الجامعة، قيمة الحقيقة (T) لتسجيل أليكس في كورس Advanced AI هي 0.8، لأنه مرجح إنه مسجل بس في قايمة الانتظار."
+            },
+            {
+                question: "Which ontology uses binary TRUE/FALSE relationships?",
+                options: ["Fuzzy Ontology", "Neutrosophic Ontology", "Classical Ontology", "Probabilistic Ontology"],
+                correct: "C",
+                difficulty: "Easy",
+                explanation: "الأونتولوجي الكلاسيكية (Classical Ontology) بتستخدم علاقات ثنائية (TRUE=1, FALSE=0)، على عكس الأونتولوجي النيوتروسوفيك أو الضبابية."
+            },
+            {
+                question: "What is the sum of T, F, I in the normalized form of Neutrosophic Ontology?",
+                options: ["1", "2", "3", "0"],
+                correct: "A",
+                difficulty: "Medium",
+                explanation: "في الصورة المعيارية (Normalized Form) للأونتولوجي النيوتروسوفيك، مجموع T + F + I = 1، زي ما ذُكر في المحاضرة."
+            },
+            {
+                question: "What is the falsity (F) value for the property 'isAvailable' of Professor Smith?",
+                options: ["0.1", "0.2", "0.4", "0.6"],
+                correct: "B",
+                difficulty: "Medium",
+                explanation: "في مثال الجامعة، قيمة الزيف (F) للخاصية 'isAvailable' بتاعة البروفيسور سميث هي 0.2، بسبب احتمالية إجازته."
+            },
+            {
+                question: "What type of operators are used to evaluate neutrosophic rules?",
+                options: ["Sum and Average", "Min and Max", "Multiply and Divide", "Greater and Less"],
+                correct: "B",
+                difficulty: "Medium",
+                explanation: "تقييم القواعد النيوتروسوفيك بيعتمد على معاملات زي Min و Max لدمج قيم T, F, I، زي ما ذُكر في المحاضرة."
+            },
+            {
+                question: "In the scholarship rule, what is the indeterminacy (I) value for 'EligibleForScholarship'?",
+                options: ["0.05", "0.1", "0.2", "0.85"],
+                correct: "C",
+                difficulty: "Hard",
+                explanation: "في قاعدة المنحة الدراسية، قيمة اللايقين (I) لـ 'EligibleForScholarship' هي 0.2، بسبب التغيرات المحتملة في معايير المنحة."
+            },
+            {
+                question: "What is one application of Neutrosophic Ontology mentioned in the lecture?",
+                options: ["Image processing", "Semantic web information retrieval", "Database optimization", "Network security"],
+                correct: "B",
+                difficulty: "Easy",
+                explanation: "واحد من تطبيقات الأونتولوجي النيوتروسوفيك هو استرجاع المعلومات في الويب الدلالي (Semantic Web)، عشان يتعامل مع مفاهيم غامضة."
+            },
+            {
+                question: "What is the truth (T) value for the property 'isDifficult' of the Advanced AI course?",
+                options: ["0.1", "0.2", "0.7", "0.9"],
+                correct: "C",
+                difficulty: "Medium",
+                explanation: "في مثال الجامعة، قيمة الحقيقة (T) للخاصية 'isDifficult' بتاعة كورس Advanced AI هي 0.7، زي ما ذُكر في المحاضرة."
+            },
+            {
+                question: "Which component of Neutrosophic Ontology represents unknown or ambiguous information?",
+                options: ["Truth (T)", "Falsity (F)", "Indeterminacy (I)", "Membership"],
+                correct: "C",
+                difficulty: "Easy",
+                explanation: "اللايقين (Indeterminacy, I) هو المكون اللي بيمثل المعلومات المجهولة أو الغامضة في الأونتولوجي النيوتروسوفيك."
+            },
+            {
+                question: "In the course load example, what is the falsity (F) value for 'isManageable' for Alex?",
+                options: ["0.2", "0.3", "0.6", "0.1"],
+                correct: "B",
+                difficulty: "Hard",
+                explanation: "في مثال عبء الكورس، قيمة الزيف (F) للخاصية 'isManageable' بتاعة أليكس هي 0.3، بسبب صعوبة الكورسات المتغيرة."
+            },
+            {
+                question: "What is the truth (T) value for 'Recommend Support' in the course load rule?",
+                options: ["0.6", "0.7", "0.8", "0.9"],
+                correct: "C",
+                difficulty: "Hard",
+                explanation: "في قاعدة عبء الكورس، قيمة الحقيقة (T) لـ 'Recommend Support' هي 0.8، زي ما اُتحسبت بناءً على القاعدة."
+            },
+            {
+                question: "How many components does a Neutrosophic Class assign to a concept?",
+                options: ["One", "Two", "Three", "Four"],
+                correct: "C",
+                difficulty: "Easy",
+                explanation: "الكلاس النيوتروسوفيك بيسند تلات مكونات (T, F, I) لكل مفهوم، زي ما ذُكر في هيكل الأونتولوجي."
+            },
+            {
+                question: "What is the maximum sum of T, F, I in non-normalized Neutrosophic Ontology?",
+                options: ["1", "2", "3", "4"],
+                correct: "C",
+                difficulty: "Medium",
+                explanation: "في الصورة غير المعيارية، أقصى مجموع لـ T + F + I هو 3، زي ما ذُكر في مقارنة الأونتولوجيات."
+            },
+            {
+                question: "Which ontology assigns a single degree of membership to concepts?",
+                options: ["Classical Ontology", "Fuzzy Ontology", "Neutrosophic Ontology", "Hybrid Ontology"],
+                correct: "B",
+                difficulty: "Easy",
+                explanation: "الأونتولوجي الضبابية (Fuzzy Ontology) بتسند درجة عضوية واحدة (من 0 لـ 1) للمفاهيم، على عكس النيوتروسوفيك اللي بتستخدم T, F, I."
+            },
+            {
+                question: "In the penguin example, what is the truth (T) value for 'Is a penguin a bird?'",
+                options: ["0.1", "0.3", "0.9", "0.7"],
+                correct: "C",
+                difficulty: "Medium",
+                explanation: "في مثال البطريق، قيمة الحقيقة (T) لسؤال 'هل البطريق طائر؟' هي 0.9، زي ما ذُكر في المحاضرة."
+            },
+            {
+                question: "What is one field where Neutrosophic Ontology is applied?",
+                options: ["Weather forecasting", "AI knowledge representation", "Cryptography", "Image compression"],
+                correct: "B",
+                difficulty: "Easy",
+                explanation: "الأونتولوجي النيوتروسوفيك بتُستخدم في تمثيل المعرفة في أنظمة الذكاء الاصطناعي (AI Knowledge Representation)، زي ما ذُكر في التطبيقات."
+            },
+            // True/False
+            {
+                question: "Neutrosophic Ontology extends fuzzy ontology by adding indeterminacy (I).",
+                correct: "True",
+                difficulty: "Easy",
+                explanation: "صح، الأونتولوجي النيوتروسوفيك بتمد الأونتولوجي الضبابية بإضافة اللايقين (Indeterminacy, I) للتعامل مع المعلومات المجهولة."
+            },
+            {
+                question: "In Neutrosophic Ontology, T + F + I always equals 1.",
+                correct: "False",
+                difficulty: "Medium",
+                explanation: "غلط، في الصورة المعيارية T + F + I = 1، لكن في الصورة غير المعيارية ممكن يكون T + F + I ≤ 3."
+            },
+            {
+                question: "Classical Ontology uses three components: T, F, I.",
+                correct: "False",
+                difficulty: "Easy",
+                explanation: "غلط، الأونتولوجي الكلاسيكية بتستخدم منطق ثنائي (TRUE=1, FALSE=0)، مش تلات مكونات زي النيوتروسوفيك."
+            },
+            {
+                question: "Neutrosophic rules use min/max operators to evaluate T, F, I values.",
+                correct: "True",
+                difficulty: "Medium",
+                explanation: "صح، القواعد النيوتروسوفيك بتستخدم معاملات Min و Max لتقييم قيم T, F, I، زي ما ذُكر في المحاضرة."
+            },
+            {
+                question: "The property 'isEnrolledIn' for Alex has an indeterminacy (I) value of 0.3.",
+                correct: "True",
+                difficulty: "Medium",
+                explanation: "صح، الخاصية 'isEnrolledIn' بتاعة أليكس ليها قيمة لايقين (I) 0.3، بسبب حالة قايمة الانتظار."
+            },
+            {
+                question: "Neutrosophic Ontology is only used in semantic web applications.",
+                correct: "False",
+                difficulty: "Easy",
+                explanation: "غلط، الأونتولوجي النيوتروسوفيك بتُستخدم في مجالات زي تمثيل المعرفة في الذكاء الاصطناعي واتخاذ القرارات، مش بس الويب الدلالي."
+            },
+            {
+                question: "The scholarship rule assigns a truth (T) value of 0.9 to 'EligibleForScholarship'.",
+                correct: "False",
+                difficulty: "Hard",
+                explanation: "غلط، قاعدة المنحة بتسند قيمة حقيقة (T) 0.85 لـ 'EligibleForScholarship'، مش 0.9."
+            },
+            {
+                question: "Neutrosophic Classes assign T, F, I memberships to concepts.",
+                correct: "True",
+                difficulty: "Easy",
+                explanation: "صح، الكلاسات النيوتروسوفيك بتسند عضويات T, F, I للمفاهيم، زي ما ذُكر في هيكل الأونتولوجي."
+            },
+            {
+                question: "The property 'isDifficult' for Advanced AI has a falsity (F) value of 0.2.",
+                correct: "True",
+                difficulty: "Medium",
+                explanation: "صح، الخاصية 'isDifficult' لكورس Advanced AI ليها قيمة زيف (F) 0.2، زي ما ذُكر في المحاضرة."
+            },
+            {
+                question: "Neutrosophic Ontology cannot handle contradictions in knowledge.",
+                correct: "False",
+                difficulty: "Easy",
+                explanation: "غلط، الأونتولوجي النيوتروسوفيك مصممة خصيصًا للتعامل مع التناقضات والمعلومات ناقصة باستخدام T, F, I."
+            },
+            {
+                question: "The course load rule recommends support with a falsity (F) value of 0.3.",
+                correct: "False",
+                difficulty: "Hard",
+                explanation: "غلط، قاعدة عبء الكورس بتوصي بالدعم بقيمة زيف (F) 0.1، مش 0.3، زي ما اُتحسبت."
+            },
+            {
+                question: "Neutrosophic Properties assign T, F, I values to relationships.",
+                correct: "True",
+                difficulty: "Easy",
+                explanation: "صح، الخصائص النيوتروسوفيك بتسند قيم T, F, I للعلاقات، زي ما ذُكر في هيكل الأونتولوجي."
+            },
+            {
+                question: "The Graduate class membership for Alex has a truth (T) value of 0.95.",
+                correct: "True",
+                difficulty: "Medium",
+                explanation: "صح، عضوية أليكس في كلاس Graduate ليها قيمة حقيقة (T) 0.95، زي ما ذُكر في مثال الجامعة."
+            },
+            {
+                question: "Fuzzy Ontology uses T, F, I components for relationships.",
+                correct: "False",
+                difficulty: "Easy",
+                explanation: "غلط، الأونتولوجي الضبابية بتستخدم درجة عضوية واحدة (0 لـ 1)، مش مكونات T, F, I زي النيوتروسوفيك."
+            },
+            {
+                question: "Neutrosophic Ontology is applied in decision-making systems.",
+                correct: "True",
+                difficulty: "Easy",
+                explanation: "صح، الأونتولوجي النيوتروسوفيك بتُستخدم في أنظمة اتخاذ القرارات، زي ما ذُكر في التطبيقات."
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        const totalQuestions = questions.length;
+
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const feedback = document.getElementById('feedback');
+        const progress = document.getElementById('progress');
+        const quizContainer = document.getElementById('quiz-container');
+        const scoreContainer = document.getElementById('score-container');
+        const scoreText = document.getElementById('score-text');
+        const percentageText = document.getElementById('percentage-text');
+        const performanceText = document.getElementById('performance-text');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+
+        function loadQuestion() {
+            const q = questions[currentQuestion];
+            questionText.innerHTML = `${currentQuestion + 1}. ${escapeHTML(q.question)} (${q.difficulty})`;
+            optionsContainer.innerHTML = '';
+            if (q.options) {
+                q.options.forEach((option, index) => {
+                    const label = String.fromCharCode(65 + index); // A, B, C, D
+                    const div = document.createElement('div');
+                    div.className = 'option';
+                    div.innerHTML = `<input type="radio" name="answer" value="${label}"> ${label}. ${escapeHTML(option)}`;
+                    optionsContainer.appendChild(div);
+                });
+            } else {
+                ['True', 'False'].forEach(option => {
+                    const div = document.createElement('div');
+                    div.className = 'option';
+                    div.innerHTML = `<input type="radio" name="answer" value="${option}"> ${option}`;
+                    optionsContainer.appendChild(div);
+                });
+            }
+            submitBtn.style.display = 'inline-block';
+            nextBtn.style.display = 'none';
+            feedback.style.display = 'none';
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const percentage = ((currentQuestion + 1) / totalQuestions) * 100;
+            progress.style.width = `${percentage}%`;
+        }
+
+        submitBtn.addEventListener('click', () => {
+            const selected = document.querySelector('input[name="answer"]:checked');
+            if (!selected) {
+                feedback.style.display = 'block';
+                feedback.className = 'wrong';
+                feedback.innerHTML = 'من فضلك اختار إجابة!';
+                return;
+            }
+            const answer = selected.value;
+            const q = questions[currentQuestion];
+            const isCorrect = (q.options && answer === q.correct) || (!q.options && answer === q.correct);
+            feedback.style.display = 'block';
+            feedback.className = isCorrect ? 'correct' : 'wrong';
+            feedback.innerHTML = isCorrect ? 'صحيح! ' + q.explanation : 'غلط! ' + q.explanation;
+            if (isCorrect) score++;
+            submitBtn.style.display = 'none';
+            nextBtn.style.display = 'inline-block';
+        });
+
+        nextBtn.addEventListener('click', () => {
+            currentQuestion++;
+            if (currentQuestion < totalQuestions) {
+                loadQuestion();
+            } else {
+                showScore();
+            }
+        });
+
+        function showScore() {
+            quizContainer.style.display = 'none';
+            scoreContainer.style.display = 'block';
+            const percentage = (score / totalQuestions) * 100;
+            scoreText.innerHTML = `الدرجة النهائية: ${score} من ${totalQuestions}`;
+            percentageText.innerHTML = `النسبة: ${percentage.toFixed(2)}%`;
+            if (percentage >= 80) {
+                performanceText.innerHTML = 'ممتاز! عملت شغل عالي جداً، كمل كده!';
+            } else if (percentage >= 50) {
+                performanceText.innerHTML = 'كويس! بس فيه مجال للتحسين، ركز أكتر.';
+            } else {
+                performanceText.innerHTML = 'محتاج تذاكر أكتر! جرب تراجع الـ lecture تاني.';
+            }
+        }
+
+        darkModeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            darkModeToggle.textContent = document.body.classList.contains('dark-mode') ? 'Light Mode' : 'Dark Mode';
+        });
+
+        loadQuestion();
+    </script>
+</body>
+</html>
+```
